@@ -34,6 +34,7 @@ import routes from "./routes/index";
 import { connectToDb } from "./config/database";
 import os from "os";
 import cookieParser from "cookie-parser";
+import { errorHandler } from "./middlewares/errorHandler";
 
 // import connectDB from "./db/connect";
 
@@ -49,12 +50,29 @@ const port: number = Number(process.env.PORT) || 8080;
 // ------------------
 // CORS
 // ------------------
+// const corsOptions: cors.CorsOptions = {
+//   origin: "*",
+//   credentials: true,
+// };
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:3001",
+];
+
 const corsOptions: cors.CorsOptions = {
-  origin: "*",
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   credentials: true,
 };
 
 app.use(cors(corsOptions));
+
+// app.use(cors(corsOptions));
 
 // ------------------
 // Global Middleware
@@ -69,6 +87,7 @@ app.use(
   "/uploads/profile-images",
   express.static(path.join(__dirname, "images/profile-images"))
 );
+
 
 // ------------------
 // Routes
@@ -86,6 +105,7 @@ app.get("/", (req: Request, res: Response) => {
 // ------------------
 // app.use(notFound);
 // app.use(errorHandler);
+app.use(errorHandler);
 
 // ------------------
 /**

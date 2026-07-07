@@ -2,12 +2,24 @@
 
 export class AppError extends Error {
   public statusCode: number;
+  public isOperational: boolean;
 
-  constructor(message: string, statusCode: number) {
+  constructor(
+    message: string,
+    statusCode: number
+  ) {
     super(message);
+
+    Object.setPrototypeOf(this, new.target.prototype);
+
     this.statusCode = statusCode;
+    this.isOperational = true;
     this.name = this.constructor.name;
-    Error.captureStackTrace(this, this.constructor);
+
+    Error.captureStackTrace(
+      this,
+      this.constructor
+    );
   }
 }
 
