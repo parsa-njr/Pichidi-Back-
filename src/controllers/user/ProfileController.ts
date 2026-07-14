@@ -47,7 +47,7 @@ export const editProfile = async (req: Request, res: Response) => {
   }
 
   try {
-    await User.findOneAndUpdate(
+    const updatedUser = await User.findOneAndUpdate(
       { _id: userId },
       { $set: updatedFields },
       { new: true, runValidators: true }
@@ -56,6 +56,12 @@ export const editProfile = async (req: Request, res: Response) => {
     res.status(200).json({
       success: true,
       message: "پروفایل با موفقیت ویرایش شد",
+      user: {
+        id: updatedUser?._id,
+        name: updatedUser?.name,
+        phone: updatedUser?.phone,
+        profileImage: updatedUser?.profileImage,
+      },
     });
   } catch (err: any) {
     if (

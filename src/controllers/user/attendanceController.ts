@@ -122,3 +122,22 @@ export const checkOut = async (req: Request, res: Response) => {
     .status(201)
     .json({ success: true, message: "خروج با موفقیت ثبت شد", attendance });
 };
+
+export const getTodayStatus = async (req: Request, res: Response) => {
+  const userId = req.user!.id;
+  const todayStr = new Date().toISOString().slice(0, 10);
+
+  const attendance = (await Attendance.findOne({
+    user: userId,
+    date: todayStr,
+  })) as IAttendance | null;
+
+  const lastSession = attendance?.sessions[attendance.sessions.length - 1];
+  const isCheckedIn = !!(lastSession && !lastSession.checkOut);
+
+  res.status(200).json({
+    success: true,
+    isCheckedIn,
+    checkInTime: isCheckedIn ? lastSession?.checkIn : null,
+  });
+};

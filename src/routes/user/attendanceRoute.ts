@@ -12,11 +12,16 @@ router.post(
   requireRole("user"),
   tryCatch(attendanceController.checkIn)
 );
+
 router.post(
   "/checkOut",
   requireRole("user"),
   tryCatch(attendanceController.checkOut)
 );
-
+router.get(
+  "/today-status",
+  requireRole("user"),
+  tryCatch(attendanceController.getTodayStatus)
+);
 // ----------------------------
 export default router;

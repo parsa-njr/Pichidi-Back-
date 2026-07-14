@@ -24,6 +24,10 @@ router.get(
   requireRole("customer"),
   tryCatch(reportController.getDateBaseLocation)
 );
-
+router.get(
+  "/dashboard-stats",
+  requireRole("customer"),
+  tryCatch(reportController.getDashboardStats)
+);
 // ----------------------------
 export default router;

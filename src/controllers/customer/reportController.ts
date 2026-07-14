@@ -216,3 +216,67 @@ export const getDateBaseLocation = async (req: Request, res: Response) => {
 
   res.json(report);
 };
+
+// ----------------------------
+// Dashboard summary (today's attendance snapshot)
+// ----------------------------
+export const getDashboardStats = async (req: Request, res: Response) => {
+  const customerId = req.user!.id;
+
+  const users = await User.find({ customer: customerId }).select("_id name");
+  const totalStaff = users.length;
+
+  const todayStr = moment().format("YYYY-MM-DD");
+  const startOfDay = new Date(`${todayStr}T00:00:00Z`);
+  const endOfDay = new Date(`${todayStr}T23:59:59Z`);
+
+  const [todayAttendance, pendingCount, locationsCount, shiftsCount] = await Promise.all([
+    Attendance.find({
+      user: { $in: users.map((u) => u._id) },
+      date: { $gte: startOfDay, $lte: endOfDay },
+    }).lean(),
+    RequestModel.countDocuments({ customer: customerId, status: "pending" }),
+    (await import("../../models/location")).default.countDocuments({ customer: customerId }),
+    Shift.countDocuments({ customer: customerId }),
+  ]);
+
+  const checkedInUserIds = new Set<string>();
+  let present = 0;
+  let delayed = 0;
+  let stillWorking = 0;
+
+  for (const att of todayAttendance) {
+    const first = att.sessions?.[0];
+    if (!first?.checkIn) continue;
+    present += 1;
+    checkedInUserIds.add(att.user.toString());
+
+    const checkInHour = new Date(first.checkIn).getUTCHours();
+    if (checkInHour >= 9) delayed += 1; // simple delay heuristic
+
+    const lastSession = att.sessions[att.sessions.length - 1];
+    if (lastSession && !lastSession.checkOut) stillWorking += 1;
+  }
+
+  const notCheckedIn = users
+    .filter((u) => !checkedInUserIds.has(u._id.toString()))
+    .map((u) => ({ id: u._id, name: u.name }));
+
+  const absent = notCheckedIn.length;
+
+  res.status(200).json({
+    success: true,
+    data: {
+      totalStaff,
+      present,
+      absent,
+      delayed,
+      stillWorking,
+      pendingRequests: pendingCount,
+      locationsCount,
+      shiftsCount,
+      notCheckedIn: notCheckedIn.slice(0, 5),
+      notCheckedInCount: notCheckedIn.length,
+    },
+  });
+};

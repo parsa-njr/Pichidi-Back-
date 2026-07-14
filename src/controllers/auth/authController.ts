@@ -244,10 +244,16 @@ export const signUp = tryCatch(async (req: Request, res: Response) => {
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     })
-    .status(201)
-    .json({
-      success: true,
-});
+  .status(201).json({
+    success: true,
+    role: "customer",
+    user: {
+      id: newCustomer._id,
+      name: newCustomer.name,
+      phone: newCustomer.phone,
+      profileImage: newCustomer.profileImage,
+    },
+  });
 });
 // --------------------------------------------------
 // LOGIN WITH PASSWORD
@@ -303,10 +309,16 @@ export const login = tryCatch(async (req: Request, res: Response) => {
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     })
-    .status(200)
-    .json({
+    .status(200).json({
       success: true,
-});
+      role,
+      user: {
+        id: account._id,
+        name: account.name,
+        phone: account.phone,
+        profileImage: account.profileImage,
+      },
+    });
 });
 // --------------------------------------------------
 // SEND OTP
@@ -421,10 +433,16 @@ export const verifyOtp = tryCatch(async (req: Request, res: Response) => {
       sameSite: "strict",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     })
-    .status(200)
-    .json({
+    .status(200).json({
       success: true,
-});
+      role,
+      user: {
+        id: account._id,
+        name: account.name,
+        phone: account.phone,
+        profileImage: account.profileImage,
+      },
+    });
 });
 // --------------------------------------------------
 // LOGOUT
@@ -510,4 +528,71 @@ export const refresh = tryCatch(async (req: Request, res: Response) => {
     .json({
       success: true,
     });
+});
+
+
+
+// NEW controller — add at the bottom of the file
+export const getMe = tryCatch(async (req: Request, res: Response) => {
+  const accessToken = req.cookies?.accessToken;
+  const refreshToken = req.cookies?.refreshToken;
+
+  const respond = (account: any, role: "user" | "customer") =>
+    res.status(200).json({
+      success: true,
+      role,
+      user: {
+        id: account._id,
+        name: account.name,
+        phone: account.phone,
+        profileImage: account.profileImage,
+      },
+    });
+
+  if (accessToken) {
+    try {
+      const decoded = jwt.verify(
+        accessToken,
+        process.env.JWT_SECRET_KEY as string
+      ) as JwtPayload;
+      const account =
+        decoded.role === "customer"
+          ? await Customer.findById(decoded.id)
+          : await User.findById(decoded.id);
+      if (account) return respond(account, decoded.role as "user" | "customer");
+    } catch {
+      // access token invalid/expired, try refresh below
+    }
+  }
+
+  if (!refreshToken) throw new AuthenticationError("وارد نشده‌اید");
+
+  let decodedRefresh: JwtPayload;
+  try {
+    decodedRefresh = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET as string
+    ) as JwtPayload;
+  } catch {
+    throw new AuthenticationError("نشست شما منقضی شده است");
+  }
+
+  const user = await User.findById(decodedRefresh.id);
+  const customer = user ? null : await Customer.findById(decodedRefresh.id);
+  const account = user || customer;
+  const role: "user" | "customer" = user ? "user" : "customer";
+
+  if (!account || account.refreshToken !== refreshToken) {
+    throw new AuthenticationError("نشست معتبر نیست");
+  }
+
+  const newAccessToken = createAccessToken(account._id.toString(), role);
+  res.cookie("accessToken", newAccessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+    maxAge: 15 * 60 * 1000,
+  });
+
+  respond(account, role);
 });

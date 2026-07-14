@@ -59,11 +59,28 @@ export const editProfile = async (req: Request, res: Response) => {
       throw new NotFoundError("چنین کاربری یافت نشد");
     }
 
-    res.status(200).json({
-      success: true,
-      message: "پروفایل با موفقیت ویرایش شد",
-      customer: updatedCustomer,
-    });
+    // res.status(200).json({
+    //   success: true,
+    //   message: "پروفایل با موفقیت ویرایش شد",
+    //   customer: updatedCustomer,
+    // });
+
+      // const updatedUser = await User.findOneAndUpdate(
+      //     { _id: userId },
+      //     { $set: updatedFields },
+      //     { new: true, runValidators: true }
+      //   );
+    
+        res.status(200).json({
+          success: true,
+          message: "پروفایل با موفقیت ویرایش شد",
+          user: {
+            id: updatedCustomer?._id,
+            name: updatedCustomer?.name,
+            phone: updatedCustomer?.phone,
+            profileImage: updatedCustomer?.profileImage,
+          },
+        });
   } catch (err: any) {
     // Handle duplicate key error (phone)
     if (err.code === 11000 && err.keyPattern?.phone) {
