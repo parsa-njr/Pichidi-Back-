@@ -8,6 +8,7 @@ import {
   UnprocessableEntityError,
 } from "../../errors/customErrors";
 import { shiftValidation } from "../../validations/shiftValidation";
+import { searchFilter } from "../../utils/searchFilter";
 
 // ───────────────────────────────────────────
 // 📍 Create a new shift
@@ -54,8 +55,12 @@ export const createShift = async (req: Request, res: Response) => {
 // ───────────────────────────────────────────
 export const getAllShifts = async (req: Request, res: Response) => {
   const customerId = req.user?.id as string;
+  const { search } = req.query;
+
+  const searchQuery = searchFilter(search as string, ["shiftName"]);
 
   const { data, pagination } = await paginate<IShift>(req, Shift, {
+    searchFilter: searchQuery,
     baseFilter: { customer: customerId },
   });
 
