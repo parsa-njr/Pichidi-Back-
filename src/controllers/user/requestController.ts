@@ -12,6 +12,7 @@ import {
   UnprocessableEntityError,
 } from "../../errors/customErrors";
 import { requestValidation } from "../../validations/requestValidation";
+import Notification from "../../models/notification"; // NEW import at top
 
 interface AuthenticatedRequest extends ExpressRequest {
   user?: {
@@ -66,7 +67,6 @@ export const createRequest = async (
   if (overlap) {
     throw new ConflictError("درخواست دیگری برای این تاریخ ثبت کرده اید");
   }
-
   // Create new request
   const newRequest: IRequest = await RequestModel.create({
     user: user._id,
@@ -78,10 +78,38 @@ export const createRequest = async (
     status: "pending",
   });
 
+  // NEW: notify the customer
+  if (user.customer) {
+    await Notification.create({
+      recipient: user.customer,
+      recipientRole: "customer",
+      type: "request_created",
+      title: "درخواست جدید",
+      message: `${user.name} یک درخواست ${requestType === "leave" ? "مرخصی" : "اضافه‌کاری"
+        } ثبت کرد`,
+      request: newRequest._id,
+    });
+  }
+
   res.status(201).json({
     success: true,
     newRequest,
   });
+  // // Create new request
+  // const newRequest: IRequest = await RequestModel.create({
+  //   user: user._id,
+  //   requestType,
+  //   startDate,
+  //   endDate,
+  //   customer: user.customer,
+  //   userNote: userNote || "",
+  //   status: "pending",
+  // });
+
+  // res.status(201).json({
+  //   success: true,
+  //   newRequest,
+  // });
 };
 
 // ──────────────────────────────

@@ -13,6 +13,8 @@ import {
 } from "../../errors/customErrors";
 import { searchFilter } from "../../utils/searchFilter";
 import { updateRequestStatusValidation } from "../../validations/requestValidation";
+import Notification from "../../models/notification"; // NEW import at top
+
 
 // GET requests
 export const getRequests = async (req: Request, res: Response) => {
@@ -74,11 +76,27 @@ export const updateRequestStatus = async (req: Request, res: Response) => {
   }
 
   // Update the request
-  const updatedRequest = await RequestModel.findByIdAndUpdate(
+  // Update the request
+  const updatedRequest: IRequest | null = await RequestModel.findByIdAndUpdate(
     requestId,
     { status, customerNote, reviewedAt: new Date() },
     { new: true, runValidators: true }
   ).exec();
+
+  // NEW: notify the user
+  await Notification.create({
+    recipient: existingRequest.user,
+    recipientRole: "user",
+    type: status === "accepted" ? "request_accepted" : "request_rejected",
+    title:
+      status === "accepted" ? "درخواست شما پذیرفته شد" : "درخواست شما رد شد",
+    message:
+      customerNote ||
+      (status === "accepted"
+        ? "درخواست شما با موفقیت پذیرفته شد"
+        : "درخواست شما رد شد"),
+    request: existingRequest._id,
+  });
 
   res.status(200).json({
     success: true,
