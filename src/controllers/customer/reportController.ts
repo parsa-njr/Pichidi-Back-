@@ -1,9 +1,11 @@
+// src/controllers/customer/reportController.ts
 import { Request, Response } from "express";
 import moment from "moment-jalaali";
 import Attendance from "../../models/attendance";
 import Shift, { IShift } from "../../models/shift";
 import RequestModel from "../../models/request";
 import User, { IUser } from "../../models/user";
+import Location from "../../models/location"; // ← add this
 import { tryCatch } from "../../utils/tryCatch";
 import paginate from "../../utils/paginate";
 import {
@@ -188,24 +190,22 @@ export const getDateBaseLocation = async (req: Request, res: Response) => {
 
   const attendanceMap = new Map<string, any>();
   for (const att of attendances) {
-    const key = `${att.user}_${moment(att.date).format("YYYY-MM-DD")}`;
+    const key = `${att.user}_${moment.utc(att.date).format("YYYY-MM-DD")}`;
     attendanceMap.set(key, att.sessions);
   }
 
   const requests = await RequestModel.find({
-    creator: { $in: users.map((u) => u._id) },
+    user: { $in: users.map((u) => u._id) },
     startDate: { $lte: end.toDate() },
     endDate: { $gte: start.toDate() },
   }).lean();
 
   const requestsMap = new Map<string, any[]>();
   for (const req of requests) {
-    // @ts-ignore
-    const creator = req.creator!.toString();
-    if (!requestsMap.has(creator)) requestsMap.set(creator, []);
-    requestsMap.get(creator)!.push(req);
-  }
-
+         const userId = req.user.toString();
+         if (!requestsMap.has(userId)) requestsMap.set(userId, []);
+         requestsMap.get(userId)!.push(req);
+}
   const report = buildAttendanceReport(
     start,
     end,
@@ -236,7 +236,7 @@ export const getDashboardStats = async (req: Request, res: Response) => {
       date: { $gte: startOfDay, $lte: endOfDay },
     }).lean(),
     RequestModel.countDocuments({ customer: customerId, status: "pending" }),
-    (await import("../../models/location")).default.countDocuments({ customer: customerId }),
+    Location.countDocuments({ customer: customerId }), // ← use the static import
     Shift.countDocuments({ customer: customerId }),
   ]);
 

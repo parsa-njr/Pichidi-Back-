@@ -1,29 +1,7 @@
-// import express from "express";
-// import cors from "cors";
-// import routes from "./routes/index";
-// import path from "path";
-// import errorHandler from "./middlewares/errorHandler";
-// const app = express();
-
-// // CORS settings (adjust for production)
-// const corsOptions = {
-//   origin: "*",
-//   credentials: true,
-// };
-// app.use(cors(corsOptions));
-
-// // Middleware
-// app.use(express.json());
-// app.use(express.urlencoded({ extended: true }));
-
-// // Routes
-// app.use("/api/v1/", routes);
-
-// // handle error 
-// app.use(errorHandler)
-
-// export default app;
-
+// ⚠️ این خط باید همیشه اولین خط اجرا شده‌ی فایل باشد — قبل از هر import دیگری که
+// از Date/moment استفاده می‌کند. چون بعضی از نسخه‌های Node، تنظیمات تایم‌زون رو
+// در همون لحظه‌ی اجرای این خط اعمال می‌کنن.
+process.env.TZ = "Asia/Tehran";
 
 import express, { Application, Request, Response } from "express";
 import path from "path";
@@ -133,6 +111,7 @@ const start = async (): Promise<void> => {
       console.log(`✅ Server is listening on http://0.0.0.0:${port}`);
       console.log(`→ Local:   http://localhost:${port}`);
       console.log(`→ Network: http://${getLocalIP()}:${port}`);
+      console.log(`→ Timezone: ${process.env.TZ} (offset: ${new Date().getTimezoneOffset()} min)`);
     });
   } catch (error) {
     console.error("❌ Failed to start server:", error);
@@ -141,4 +120,3 @@ const start = async (): Promise<void> => {
 };
 
 start();
-
